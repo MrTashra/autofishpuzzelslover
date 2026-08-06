@@ -9,12 +9,20 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v6
 
-      - name: Extract Project Zip
+      - name: Extract and Fix Path
         run: |
-          # پیدا کردن فایل زیپ و استخراج آن در پوشه اصلی
-          unzip project.zip -d extracted_project
-          # انتقال محتویات به پوشه ریشه گیت‌هاب
-          cp -r extracted_project/* ./
+          apt-get update && apt-get install -y unzip
+          # استخراج فایل زیپ در یک پوشه موقت
+          unzip project.zip -d temp_folder
+          
+          # بررسی اینکه آیا فایل‌ها داخل یک پوشه داخلی قرار دارند یا مستقیم
+          if [ -d "temp_folder/gradle" ]; then
+            cp -r temp_folder/* ./
+          else
+            # پیدا کردن پوشه داخلی و انتقال محتویات به ریشه
+            DIR=$(ls temp_folder | head -n 1)
+            cp -r temp_folder/$DIR/* ./
+          fi
 
       - name: setup jdk
         uses: actions/setup-java@v5
@@ -27,8 +35,7 @@ jobs:
 
       - name: Setup Headless Display (Xvfb)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb unzip
+          sudo apt-get install -y xvfb
 
       - name: build with virtual display
         run: xvfb-run --auto-servernum ./gradlew build
